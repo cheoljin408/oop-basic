@@ -96,3 +96,221 @@ public class Account {
 
 - 캡슐화: 기능의 구현을 외부에 감춤
 - 캠슐화를 통해 기능을 사용하는 코드에 영향을 주지 않고(또는 최소화) 내부 구현을 변경할 수 있는 유연함
+
+## 캡슐화 연습1
+
+캡슐과 전
+
+```java
+public AuthResult authenticate(String id, String pw) {
+	Member mem = findOne(id);
+	
+	if(mem == null) return AuthResult.NO_MATCH;
+
+	if(mem.getVerificationEmailStatus() != 2) {
+		return AuthResult.NO_EMAIL_VERIFIED;
+	}
+
+	if(passwordEncoder.isPasswordValid(mem.getPassword(), pw, mem.getId())) {
+		return AuthResult.SUCCESS;
+	}
+	
+	return AuthResult.NO_MATCH;
+}
+```
+
+캡슐화 후
+
+```java
+public AuthResult authenticate(String id, String pw) {
+	Member mem = findOne(id);
+	
+	if(mem == null) return AuthResult.NO_MATCH;
+
+	if(!mem.isEmailVerified()) {
+		return AuthResult.NO_EMAIL_VERIFIED;
+	}
+
+	if(passwordEncoder.isPasswordValid(mem.getPassword(), pw, mem.getId())) {
+		return AuthResult.SUCCESS;
+	}
+	
+	return AuthResult.NO_MATCH;
+}
+```
+
+```java
+public class Member {
+	private int verificationEmailStatus;
+
+	public boolean isEmailVerified() {
+		return verificationEmailStatus == 2;
+	}
+}
+```
+
+## 캡슐화 연습2
+
+캡슐화 전
+
+```java
+public class Rental {
+	private Movie movie;
+	private int daysRented;
+
+	public int getFrequentRenterPoints() {
+		if(movie.getPriceCode() == Movie.NEW_RELEASE && daysRented > 1)
+			return 2;
+		else
+			return 1;
+	}
+}
+```
+
+```java
+public class Movie {
+	public static int REGULAR = 0;
+	public static int NEW_RELEASE = 1;
+	public int priceCode;
+
+	public int getPriceCode() {
+		return priceCode;
+	}
+}
+```
+
+캡슐화 후
+
+```java
+public class Rental {
+	private Movie movie;
+	private int daysRented;
+
+	public int getFrequentRenterPoints() {
+		return movie.getFrequentRenterPoints(daysRented);
+	}
+}
+```
+
+```java
+public class Movie {
+	public static int REGULAR = 0;
+	public static int NEW_RELEASE = 1;
+	public int priceCode;
+
+	public int getFrequentRenterPoints(int daysRented) {
+		if(priceCode() == NEW_RELEASE && daysRented > 1)
+			return 2;
+		else
+			return 1;
+	}
+}
+```
+
+## 캡슐화 연습3
+
+캡슐화 전
+
+```java
+Timer t = new Timer();
+
+t.startTime = System.currentTimeMillis();
+...
+t.stopTime = System.currentTimeMillis();
+
+long elapsedTime = t.stopTime - t.startTime;
+```
+
+```java
+public class Timer {
+	public long startTime;
+	public long stopTime
+}
+```
+
+캡슐화 후
+
+```java
+Timer t = new Timer();
+
+t.start();
+...
+t.stop();
+
+long time = t.elapsedTime(MILLISECOND);
+```
+
+```java
+public class Timer {
+	private long startTime;
+	private long stopTime;
+
+	public void start() {
+		this.startTime = System.currentTimeMillis();
+	}
+
+	public void stop() {
+		this.stopTime = System.currentTimeMillis();
+	}
+
+	public long elapsedTime(TimemUnit unit) {
+		switch(unit) {
+			case MILLISECOND:
+				return stopTime - startTime;
+			...
+		}
+	}
+}
+```
+
+## 캡슐화 연습4
+
+캡슐화 전
+
+```java
+public void verifyEmail(String token) {
+	Member mem = findByToken(token);
+	
+	if(mem == null) throw new BadTokenException();
+	
+	if(mem.getVerificationEmailStatus() == 2) {
+		throw new AlreadyVerifiedException();
+	} else {
+		mem.setVerificationEmailStatus(2);
+	}
+	// ...수정사항 DB 반영
+}
+```
+
+캡슐화 후
+
+```java
+public void verifyEmail(String token) {
+	Member mem = findByToken(token);
+	
+	if(mem == null)
+		throw new BadTokenException();
+
+	mem.verifyEmail();
+
+	// ...수정사항 DB 반영
+}
+```
+
+```java
+public class Member {
+	private int verificationEmailStatus;
+
+	public void verifyEmail() {
+		if(isEmailVerified()) {
+			throw new AlreadyVerifiedException();
+		} else {
+			this.verificationEmailStatus = 2;
+		}
+	}
+
+	public boolean isEmailVerified() {
+		return verificationEmailStatus == 2;
+	}
+}
+```
