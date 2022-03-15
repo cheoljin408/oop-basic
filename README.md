@@ -314,3 +314,184 @@ public class Member {
 	}
 }
 ```
+## 다형성
+
+- 여러 모습을 갖는 것
+- 객체 지향에서는 한 객체가 여러 타입을 갖는 것
+    - 즉 한 객체가 여러 타입의 기능을 제공
+    - 타입 상속으로 다형성 구현
+
+```java
+public class Timer {
+	public void start() {}
+	public void stop() {}
+}
+
+public interface Rechargeable {
+	void charge();
+}
+```
+
+```java
+public class IotTimer extends Timer implements Rechargeable {
+	public void charge() {
+		...
+	}
+}
+```
+
+```java
+IotTimer it = new IotTimer();
+it.start();
+it.stop();
+
+Timer t = it;
+t.start();
+t.stop();
+
+Rechargeable r = it;
+r.charge();
+```
+
+## 추상화
+
+- 데이터나 프로세스 등을 의미가 비슷한 개념이나 의미있는 표현으로 정의하는 과정
+- 두 가지 방식의 추상화
+    - 특정한 성질
+        
+        DB의 USER 테이블: 아이디, 이름, 이메일
+        
+        Money 클래스: 통화, 금액
+        
+    - 공통 성질(일반화)
+        
+        프린터: HP MXXX, 삼성 SL-M2XXX
+        
+        GPU: 지포스, 라데온
+        
+
+## 서로 다른 구현 추상화
+
+SCP로 파일 업로드, HTTP로 데이터 전송, DB 테이블 삽입 → 추상화 → 푸시 발송 요청
+
+## 타입 추상화
+
+- 여러 구현 클래스를 대표하는 상위 타입 도출
+    - 흔히 인터페이스 타입으로 추상화
+    - 추상화 타입과 구현은 타입 상속으로 연결
+
+```java
+												<<interface>>
+													Notifier
+															|
+							+---------------+--------------+
+							|               |              |
+				EmailNotifier    SMSNotifier    KakaoNotifier
+```
+
+## 추상 타입 사용에 따른 이점: 유연함
+
+- 콘크리트 클래스를 직접 사용하면
+    
+    ```java
+    private SmsSender smsSender;
+    
+    public void cancel(String ono) {
+    	...주문 취소 처리
+    
+    	smsSender.sendSms();
+    }
+    ```
+    
+    ```java
+    private SmsSender smsSender;
+    private KakaoPush kakaoPush;
+    
+    public void cancel(String ono) {
+    	...주문 취소 처리
+    
+    	if(pushEnabled) {
+    		kakaoPush.push();
+    	} else {
+    		smsSender.sendSms();
+    	}
+    }
+    ```
+    
+    ```java
+    private SmsSender smsSender;
+    private KakaoPush kakaoPush;
+    private MailService mailSvc;
+    
+    public void cancel(String ono) {
+    	...주문 취소 처리
+    
+    	if(pushEnabled) {
+    		kakaoPush.push();
+    	} else {
+    		smsSender.sendSms();
+    	}
+    	mailSvc.sendMail();
+    }
+    ```
+    
+    요구사항 변경에 따라 주문 취소 코드도 함께 변경
+    
+    주문 취소라는 본질 자체랑 상관없는 sms, kakao, mail 때문에 주문 취소를 구현한 cancel() 메소드의 코드가 함께 바뀐다.
+    
+
+- 추상화 하면
+
+sms전송, 카카오톡보냄, 이메일 발송 → 추상화 → 통지(Notifier)
+
+```java
+public void cancel(String ono) {
+	...주문 취소 처리
+	Notifier notifier = NotifierFactory.instance().getNotifier();
+	notifier.notify();
+}
+
+public interface NotifierFactory {
+	Notifier getNotifier();
+
+	static NotifierFactory instance() {
+		return new DefaultNotifierFactory();
+	}
+}
+	
+public class DefaultNotifierFactory implements NotifierFactory {
+	public Notifier getNotifier() {
+		if(pushEnabled) return new KakaoNotifier();
+		else return new SmsNotifier();
+	}
+}
+```
+
+## 상속과 재사용
+
+- 상위 클래스의 기능을 재사용, 확장하는 방법으로 활용함..그러나
+
+## 상속을 통한 기능 재사용시 발생할 수 있는 단점
+
+- 상위 클래스 변경 어려움
+- 클래스 증가
+- 상속 오용
+
+## 상속을 통한 재사용의 단점1
+
+- 상위 클래스의 변경이 어려움
+- 상위 클래스를 변경하면 변경의 여파가 계층도를 따라 하위 클래스로 전파 됨
+
+## 상속을 통한 재사용의 단점2
+
+## 상속의 단점 해결 방법 → 조립
+
+![스크린샷 2022-03-01 오전 11.59.21.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/a86d140b-a837-41ee-9ba7-0f5a6e48e62d/스크린샷_2022-03-01_오전_11.59.21.png)
+
+- 상속을 이용한 확장을 통해 기능을 추가하는게 아니라 해당 기능을 제공하는 클래스를 만들어서 조립하여 사용
+- 상속을 오용하는 문제도 크게 줄어듦
+
+## 상속보다는 조립
+
+- 상속하기에 앞서 조립으로 풀 수 없는지 검토
+- 진짜 하위 타입인 경우에만 상속 사용
